@@ -102,16 +102,14 @@ export class VideoSummaryStack extends cdk.Stack {
       resources: ['*'],
     }));
 
-    const convertToAudio = new lambda.Function(this, 'convertToAudio', {
+    const convertToAudio = new lambda.DockerImageFunction(this, 'convertToAudio', {
       functionName: `${resourceName}-convertToAudio`,
-      runtime: lambda.Runtime.PYTHON_3_12,
-      code: lambda.Code.fromAsset('../functions/convertToAudio'),
+      code: lambda.DockerImageCode.fromImageAsset('../functions/convertToAudio'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
       architecture: lambda.Architecture.ARM_64,
       role: lambdaRole,
       tracing: lambda.Tracing.ACTIVE,
-      handler: 'main.lambda_handler', 
     });
 
     const stepFunctionsTrigger = new lambda.Function(this, 'stepFunctionsTrigger', {
