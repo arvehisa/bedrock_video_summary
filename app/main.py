@@ -10,7 +10,7 @@ with st.sidebar:
     submit_button = st.button('Upload Video')
 
 # アップロードされたビデオのリスト（ここでは仮のデータを使用）
-videos = ["Video 1", "Video 2", "Video 3"]  # 実際にはDynamoDBから取得したデータを使用する
+videos = ["Video 1", "Video 2", "Video 3"]  # 実際にはDynamoDBから取得したデータを使用する.
 
 # サイドバーにビデオのリストを表示するセレクトボックスを設置
 selected_video = st.sidebar.selectbox("Select a video", videos)
