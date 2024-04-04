@@ -1,0 +1,10 @@
+*.json
+*.srt
+*.m4a
+*.mp4
+*.wav
+
+/sample_code
+/sample_data
+/sample_media
+.env
