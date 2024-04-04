@@ -19,7 +19,7 @@ type Props = cdk.StackProps & {
 
 export class VideoSummaryStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: Props) {
-    super(scope, id);
+    super(scope, id, props);
     
     const resourceName = "videosum"
 
@@ -48,14 +48,6 @@ export class VideoSummaryStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
     });
-
-    // ecr
-    const ecrRepository = new ecr.Repository(this, 'ecrRepository',{
-      repositoryName: `${resourceName}-ecr`,
-      removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteImages: true,
-
-    })
 
     // vpc, ecs, fagate
     const vpc = new ec2.Vpc(this, 'Vpc', {
@@ -88,7 +80,7 @@ export class VideoSummaryStack extends cdk.Stack {
         taskImageOptions: {
           family: `${resourceName}-taskdef`,
           containerName: `${resourceName}-container`,
-          image: ecs.ContainerImage.fromEcrRepository(ecrRepository, "latest"),
+          image: ecs.ContainerImage.fromEcrRepository(props.ecr, "latest"),
           logDriver: new ecs.AwsLogDriver({
             streamPrefix: `container`,
             logGroup: logGroup,
