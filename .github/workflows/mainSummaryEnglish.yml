@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'functions/mainSummaryEnglish'
+      - 'functions/mainSummaryEnglish/**'
 jobs:
   deploy:
     runs-on: ubuntu-latest

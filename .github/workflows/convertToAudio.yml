@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'functions/convertToAudio'
+      - 'functions/convertToAudio/**'
 jobs:
   deploy:
     runs-on: ubuntu-latest
