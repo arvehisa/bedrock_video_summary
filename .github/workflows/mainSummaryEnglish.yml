@@ -4,7 +4,8 @@ on:
   push:
     branches:
       - main
-
+    paths:
+      - 'functions/mainSummaryEnglish'
 jobs:
   deploy:
     runs-on: ubuntu-latest

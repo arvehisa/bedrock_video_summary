@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - 'app/**'
-      - '.github/workflows/ecsDeploy.yml'
 
 env:
     AWS_REGION: us-east-1
