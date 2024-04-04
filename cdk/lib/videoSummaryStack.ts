@@ -12,6 +12,7 @@ import * as sfn from 'aws-cdk-lib/aws-stepfunctions'
 import * as ecs_patterns from "aws-cdk-lib/aws-ecs-patterns";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
+import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 
 type Props = cdk.StackProps & {
   ecr: ecr.Repository;
@@ -104,10 +105,10 @@ export class VideoSummaryStack extends cdk.Stack {
 
     const convertToAudio = new lambda.DockerImageFunction(this, 'convertToAudio', {
       functionName: `${resourceName}-convertToAudio`,
-      code: lambda.DockerImageCode.fromImageAsset('../functions/convertToAudio'),
+      code: lambda.DockerImageCode.fromImageAsset('../functions/convertToAudio',{ platform: Platform.LINUX_AMD64 }),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64,
       role: lambdaRole,
       tracing: lambda.Tracing.ACTIVE,
     });
@@ -118,7 +119,7 @@ export class VideoSummaryStack extends cdk.Stack {
       code: lambda.Code.fromAsset('../functions/stepFunctionsTrigger'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64,
       role: lambdaRole,
       tracing: lambda.Tracing.ACTIVE,
       handler: 'main.lambda_handler', 
@@ -130,7 +131,7 @@ export class VideoSummaryStack extends cdk.Stack {
       code: lambda.Code.fromAsset('../functions/transcribeJob'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64,
       role: lambdaRole,
       tracing: lambda.Tracing.ACTIVE,
       handler: 'main.lambda_handler', 
@@ -142,7 +143,7 @@ export class VideoSummaryStack extends cdk.Stack {
       code: lambda.Code.fromAsset('../functions/checkJobStatusFormatting'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64,
       role: lambdaRole,
       tracing: lambda.Tracing.ACTIVE,
       handler: 'main.lambda_handler', 
@@ -153,8 +154,8 @@ export class VideoSummaryStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_12,
       code: lambda.Code.fromAsset('../functions/mainSummaryEnglish'),
       timeout: cdk.Duration.seconds(300),
-      memorySize: 256,
-      architecture: lambda.Architecture.ARM_64,
+      memorySize: 512,
+      architecture: lambda.Architecture.X86_64,
       role: lambdaRole,
       tracing: lambda.Tracing.ACTIVE,
       handler: 'main.lambda_handler', 
@@ -166,7 +167,7 @@ export class VideoSummaryStack extends cdk.Stack {
       code: lambda.Code.fromAsset('../functions/mainSummaryTranslation'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64,
       role: lambdaRole,
       tracing: lambda.Tracing.ACTIVE,
       handler: 'main.lambda_handler', 
@@ -178,7 +179,7 @@ export class VideoSummaryStack extends cdk.Stack {
       code: lambda.Code.fromAsset('../functions/splitPartsSummary'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64,
       role: lambdaRole,
       tracing: lambda.Tracing.ACTIVE,
       handler: 'main.lambda_handler', 
