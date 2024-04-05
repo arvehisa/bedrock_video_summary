@@ -50,6 +50,12 @@ export class VideoSummaryStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
+    const transcriptFormatted = new s3.Bucket(this, 'transcriptFormatted', {
+      bucketName: `${resourceName}-transcript-formatted`,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+    });
+
     // vpc, ecs, fagate
     const vpc = new ec2.Vpc(this, 'Vpc', {
       vpcName: `${resourceName}-vpc`,
@@ -105,7 +111,7 @@ export class VideoSummaryStack extends cdk.Stack {
 
     const convertToAudio = new lambda.DockerImageFunction(this, 'convertToAudio', {
       functionName: `${resourceName}-convertToAudio`,
-      code: lambda.DockerImageCode.fromImageAsset('../functions/convertToAudio',{ platform: Platform.LINUX_AMD64 }),
+      code: lambda.DockerImageCode.fromImageAsset('../functions/01_convertToAudio',{ platform: Platform.LINUX_AMD64 }),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
       architecture: lambda.Architecture.X86_64,
@@ -116,7 +122,7 @@ export class VideoSummaryStack extends cdk.Stack {
     const stepFunctionsTrigger = new lambda.Function(this, 'stepFunctionsTrigger', {
       functionName: `${resourceName}-stepFunctionsTrigger`,
       runtime: lambda.Runtime.PYTHON_3_12,
-      code: lambda.Code.fromAsset('../functions/stepFunctionsTrigger'),
+      code: lambda.Code.fromAsset('../functions/02_stepFunctionsTrigger'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
       architecture: lambda.Architecture.X86_64,
@@ -128,7 +134,7 @@ export class VideoSummaryStack extends cdk.Stack {
     const transcribeJob = new lambda.Function(this, 'transcribeJob', {
       functionName: `${resourceName}-transcribeJob`,
       runtime: lambda.Runtime.PYTHON_3_12,
-      code: lambda.Code.fromAsset('../functions/transcribeJob'),
+      code: lambda.Code.fromAsset('../functions/03_transcribeJob'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
       architecture: lambda.Architecture.X86_64,
@@ -140,7 +146,7 @@ export class VideoSummaryStack extends cdk.Stack {
     const checkJobStatusFormatting = new lambda.Function(this, 'checkJobStatusFormatting', {
       functionName: `${resourceName}-checkJobStatusFormatting`,
       runtime: lambda.Runtime.PYTHON_3_12,
-      code: lambda.Code.fromAsset('../functions/checkJobStatusFormatting'),
+      code: lambda.Code.fromAsset('../functions/04_checkJobStatusFormatting'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
       architecture: lambda.Architecture.X86_64,
@@ -152,7 +158,7 @@ export class VideoSummaryStack extends cdk.Stack {
     const mainSummaryEnglish = new lambda.Function(this, 'mainSummaryEnglish', {
       functionName: `${resourceName}-mainSummaryEnglish`,
       runtime: lambda.Runtime.PYTHON_3_12,
-      code: lambda.Code.fromAsset('../functions/mainSummaryEnglish'),
+      code: lambda.Code.fromAsset('../functions/05_mainSummaryEnglish'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 512,
       architecture: lambda.Architecture.X86_64,
@@ -164,7 +170,7 @@ export class VideoSummaryStack extends cdk.Stack {
     const mainSummaryTranslation = new lambda.Function(this, 'mainSummaryTranslation', {
       functionName: `${resourceName}-mainSummaryTranslation`,
       runtime: lambda.Runtime.PYTHON_3_12,
-      code: lambda.Code.fromAsset('../functions/mainSummaryTranslation'),
+      code: lambda.Code.fromAsset('../functions/06_mainSummaryTranslation'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
       architecture: lambda.Architecture.X86_64,
@@ -172,11 +178,12 @@ export class VideoSummaryStack extends cdk.Stack {
       tracing: lambda.Tracing.ACTIVE,
       handler: 'main.lambda_handler', 
     });
+
 
     const splitPartsSummary = new lambda.Function(this, 'splitPartsSummary', {
       functionName: `${resourceName}-splitPartsSummary`,
       runtime: lambda.Runtime.PYTHON_3_12,
-      code: lambda.Code.fromAsset('../functions/splitPartsSummary'),
+      code: lambda.Code.fromAsset('../functions/07_splitPartsSummary'),
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
       architecture: lambda.Architecture.X86_64,
@@ -184,11 +191,23 @@ export class VideoSummaryStack extends cdk.Stack {
       tracing: lambda.Tracing.ACTIVE,
       handler: 'main.lambda_handler', 
     });
+    // sfn
 
-    // step functions
+    const sfnRole: iam.Role = new iam.Role(this, 'sfnRole', {
+      roleName: `${resourceName}-sfnRole`,
+      assumedBy: new iam.ServicePrincipal("states.amazonaws.com"),
+      path: "/"
+    });
+
+    sfnRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['*'],
+      resources: ['*'],
+    }));
+
     const stepFunctions = new sfn.StateMachine(this, 'StateMachineFromFile', {
-      definitionBody: sfn.DefinitionBody.fromFile('../functions/sfn_placeholder.json', {}),
+      definitionBody: sfn.DefinitionBody.fromFile('../functions/step_functions.json', {}),
       stateMachineName: `${resourceName}-sfn`,
+      role: sfnRole,
     });
 
     // triggers
