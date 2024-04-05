@@ -1,0 +1,3 @@
+Here is the meeting transcript with timestamps and speaker information:
+<transcript>{transcript_text}</transcript>
+Please take a deep breath, read the transcript carefully, and provide your summary following the outlined structure, ensuring you cover all the important information.

@@ -27,7 +27,7 @@ export class VideoSummaryStack extends cdk.Stack {
     // ddb
     const dynamoDB = new aws_dynamodb.Table(this, 'TranscribeTable', {
       tableName: `${resourceName}-table`,
-      partitionKey: { name: 'pk', type: AttributeType.STRING },
+      partitionKey: { name: 's3_uri', type: AttributeType.STRING },
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
