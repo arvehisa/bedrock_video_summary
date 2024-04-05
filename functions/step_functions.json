@@ -1,0 +1,44 @@
+{
+    "StartAt": "TranscribeJob",
+    "States": {
+      "TranscribeJob": {
+        "Type": "Task",
+        "Resource": "${transcribeJobArn}",
+        "Parameters": {
+          "s3Bucket.$": "$.s3Bucket",
+          "s3Key.$": "$.s3Key"
+        },
+        "ResultPath": "$.transcribeJobResult",
+        "Next": "WaitForJobCompletion"
+      },
+      "WaitForJobCompletion": {
+        "Type": "Wait",
+        "Seconds": 15,
+        "Next": "CheckJobStatus"
+      },
+      "CheckJobStatus": {
+        "Type": "Task",
+        "Resource": "${checkJobStatusFormattingArn}",
+        "Parameters": {
+          "jobName.$": "$.transcribeJobResult.jobName"
+        },
+        "Next": "JobComplete?"
+      },
+      "JobComplete?": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.transcribeJobResult.jobStatus",
+            "StringEquals": "COMPLETED",
+            "Next": "Summarization"
+          }
+        ],
+        "Default": "WaitForJobCompletion"
+      },
+      "Summarization": {
+        "Type": "Task",
+        "Resource": "${mainSummaryEnglishArn}",
+        "End": true
+      }
+    }
+  }
