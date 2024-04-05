@@ -7,3 +7,7 @@
 /sample_data
 /sample_media
 .env
+/test
+
+/__pycache__
+.toml

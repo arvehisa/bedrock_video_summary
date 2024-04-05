@@ -1,5 +1,12 @@
 import streamlit as st
+import boto3
+from datetime import datetime
 
+# Initialize DynamoDB client
+dynamodb = boto3.resource('dynamodb')
+table_name = 'videosum-table'
+table = dynamodb.Table(table_name)
+s3 = boto3.client('s3')
 # サイドバーにファイルアップロード機能を設置
 with st.sidebar:
     uploaded_file = st.file_uploader("Choose a file")
@@ -9,25 +16,50 @@ with st.sidebar:
 
     submit_button = st.button('Upload Video')
 
-# アップロードされたビデオのリスト（ここでは仮のデータを使用）
-videos = ["Video 1", "Video 2", "Video 3"]  # 実際にはDynamoDBから取得したデータを使用する.
+# アップロードされたビデオのリスト（DynamoDBから取得）
+response = table.scan()
+videos = [item['video_name'] for item in response['Items']]
 
 # サイドバーにビデオのリストを表示するセレクトボックスを設置
 selected_video = st.sidebar.selectbox("Select a video", videos)
 
 # 選択されたビデオに関する情報をメインエリアに表示
 if selected_video:
-    # ここでは仮のデータを表示しています。実際には選択されたビデオに対応する情報をDynamoDBから取得して表示します。
-    st.write(f"### Video Title: {selected_video}")
-    st.write("URL: URL goes here (if available)")  # URLがあれば表示
-    st.write("### Summary")
-    st.write("This is a summary of the video.")
-    st.write("### Timestamp-wise Summary")
-    st.write("- 00:00: Introduction")
-    st.write("- 01:00: Main content starts")
-    st.write("- 02:00: Conclusion")
+    # 選択されたビデオの情報をDynamoDBから取得
+    response = table.get_item(Key={'s3_uri': f"s3://videosum-audio-output/{selected_video}.m4a"})
+    print(response)
+    
+    if 'Item' in response:
+        item = response['Item']
+        st.write(f"### Video Title: {item['video_name']}")
+        st.write(f"URL: {item.get('video_url', 'URL not available')}")  # URLがあれば表示
+        st.write("### Summary")
+        st.write(item.get('sum_en', 'Summary not available'))
+        st.write("### 日本語の要約")
+        st.write(item.get('sum_ja', '日本語の要約はありません'))
+        st.write("### Timestamp-wise Summary")
+        st.write(item.get('sum_by_tspart', 'Timestamp-wise summary not available'))
+    else:
+        st.write("Video not found in the database.")
 
 if submit_button:
-    # ここでファイルアップロードとDynamoDBへの情報保存の処理を行う
-    # アップロードされたファイルと入力された情報を使用して処理を行う
-    st.sidebar.write("Video uploaded successfully!")
+    # ファイルアップロードとDynamoDBへの情報保存の処理を行う
+    if uploaded_file and video_name:
+        # アップロードされたファイルをS3に保存（ここでは省略）
+        s3_uri = f"s3://videosum-video-input/{video_name}"
+        s3.upload_fileobj(uploaded_file, "videosum-video-input", video_name)
+        upload_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # DynamoDBにビデオの情報を保存
+        item = {
+            's3_uri': s3_uri,
+            'video_name': video_name,
+            'video_url': url,
+            'video_description': description,
+            'upload_ts': upload_ts
+        }
+        table.put_item(Item=item)
+        
+        st.sidebar.write("Video uploaded successfully!")
+    else:
+        st.sidebar.write("Please provide a file and video name.")
