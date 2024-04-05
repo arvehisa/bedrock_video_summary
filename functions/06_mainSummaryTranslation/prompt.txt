@@ -1,0 +1,3 @@
+Here is the text you need to translate.
+---
+{transcript_text}

@@ -1,0 +1,5 @@
+Here is the main summary just for reference.
+<main_summary>{sum_ja}<main_summay>
+
+Please summarize the transcript below.
+<transcript>{ts_part}</transcript>

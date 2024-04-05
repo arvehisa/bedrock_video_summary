@@ -30,11 +30,11 @@ def generate_message(bedrock_runtime, model_id, system_prompt, messages, max_tok
 
 def lambda_handler(event, context):
     dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table('video-sum-table')  # Corrected table name
+    table = dynamodb.Table('videosum-table')  # Corrected table name
 
     try:
         # Retrieve the S3 URL from the event object
-        s3_uri = event['s3_uri']  # Ensure this key exists in your event object
+        s3_uri = event['Payload']['s3_uri']  # Ensure this key exists in your event object
 
         # Retrieve the transcription text from DynamoDB
         response = table.get_item(Key={'s3_uri': s3_uri})
@@ -43,9 +43,8 @@ def lambda_handler(event, context):
         sum_en = response['Item']['sum_en']  # Assuming this is the correct key
 
         # Prepare the prompt
-        prompt_template = read_prompt()
         system_prompt = read_system_prompt()
-        prompt = prompt_template.replace("{transcript_text}", sum_en)
+        prompt = read_prompt().replace("{transcript_text}", sum_en)
 
         bedrock_runtime = boto3.client(service_name='bedrock-runtime')
         model_id = 'anthropic.claude-3-sonnet-20240229-v1:0'
@@ -64,7 +63,7 @@ def lambda_handler(event, context):
         # Update the DynamoDB item with the summary
         update_response = table.update_item(
             Key={'s3_uri': s3_uri},
-            UpdateExpression='SET sum_en = :val',
+            UpdateExpression='SET sum_ja = :val',
             ExpressionAttributeValues={':val': sum_ja}
         )
 

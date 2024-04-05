@@ -1,44 +1,135 @@
 {
-    "StartAt": "TranscribeJob",
-    "States": {
-      "TranscribeJob": {
-        "Type": "Task",
-        "Resource": "${transcribeJobArn}",
-        "Parameters": {
-          "s3Bucket.$": "$.s3Bucket",
-          "s3Key.$": "$.s3Key"
-        },
-        "ResultPath": "$.transcribeJobResult",
-        "Next": "WaitForJobCompletion"
+  "StartAt": "transcribeJob",
+  "States": {
+    "transcribeJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-transcribeJob:$LATEST"
       },
-      "WaitForJobCompletion": {
-        "Type": "Wait",
-        "Seconds": 15,
-        "Next": "CheckJobStatus"
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "WaitForJobCompletion"
+    },
+    "WaitForJobCompletion": {
+      "Type": "Wait",
+      "Seconds": 15,
+      "Next": "checkJobStatusFormatting",
+      "OutputPath": "$"
+    },
+    "checkJobStatusFormatting": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-checkJobStatusFormatting:$LATEST"
       },
-      "CheckJobStatus": {
-        "Type": "Task",
-        "Resource": "${checkJobStatusFormattingArn}",
-        "Parameters": {
-          "jobName.$": "$.transcribeJobResult.jobName"
-        },
-        "Next": "JobComplete?"
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "JobComplete?",
+      "ResultPath": "$.checkJobStatusFormattingResult"
+    },
+    "JobComplete?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.checkJobStatusFormattingResult.Payload.jobStatus",
+          "StringEquals": "COMPLETED",
+          "Next": "mainSummaryEnglish"
+        }
+      ],
+      "Default": "WaitForJobCompletion"
+    },
+    "mainSummaryEnglish": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-mainSummaryEnglish:$LATEST"
       },
-      "JobComplete?": {
-        "Type": "Choice",
-        "Choices": [
-          {
-            "Variable": "$.transcribeJobResult.jobStatus",
-            "StringEquals": "COMPLETED",
-            "Next": "Summarization"
-          }
-        ],
-        "Default": "WaitForJobCompletion"
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "mainSummaryTranslation"
+    },
+    "mainSummaryTranslation": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-mainSummaryTranslation:$LATEST"
       },
-      "Summarization": {
-        "Type": "Task",
-        "Resource": "${mainSummaryEnglishArn}",
-        "End": true
-      }
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "InputPath": "$.checkJobStatusFormattingResult",
+      "Next": "splitPartsSummary"
+    },
+    "splitPartsSummary": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-splitPartsSummary:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "End": true
     }
   }
+}

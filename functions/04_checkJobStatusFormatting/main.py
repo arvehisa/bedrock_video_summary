@@ -9,8 +9,8 @@ def lambda_handler(event, context):
     table = dynamodb.Table('videosum-table') 
 
     # Extract jobName and s3_uri from the event
-    job_name = event.get('jobName') or event['transcribeJobResult']['jobName']
-    s3_uri = event['s3_uri']
+    job_name = event['Payload'].get('jobName')
+    s3_uri = event['Payload']['s3_uri']
 
     # Check Transcribe job status
     response = transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
@@ -32,23 +32,23 @@ def lambda_handler(event, context):
            Item={
                 's3_uri': s3_uri,
                 'transcript_formatted': formatted_transcript,
-                'transcript_json': transcript_data
             }
         )
 
         return {
             'statusCode': 200,
             's3_uri' : s3_uri,
-            'body': json.dumps('Transcript processed and saved successfully.')
+            'jobName': job_name,
+            'jobStatus': job_status
         }
     else:
         return {
             'statusCode': 202,
-            'body': json.dumps('Transcribe job not completed yet.')
+            'jobName': job_name,
+            'jobStatus': job_status
         }
 
 def format_transcript(data):
-    # This function is adapted from your JSON formatting code
     results = []
     current_speaker = None
     current_segment = []
@@ -57,11 +57,7 @@ def format_transcript(data):
         if 'speaker_label' in item:
             if current_speaker != item['speaker_label'] or item['type'] == 'punctuation':
                 if current_segment:
-                    results.append({
-                        'speaker': current_speaker,
-                        'start_time': round(float(current_segment[0]['start_time']), 1),
-                        'content': ''.join([seg['content'] for seg in current_segment])
-                    })
+                    results.append(f"{current_speaker}, {round(float(current_segment[0]['start_time']), 1)}, {''.join([seg['content'] for seg in current_segment])}")
                     current_segment = []
                 current_speaker = item['speaker_label']
 
@@ -72,10 +68,6 @@ def format_transcript(data):
             })
 
     if current_segment:
-        results.append({
-            'speaker': current_speaker,
-            'start_time': round(float(current_segment[0]['start_time']), 1),
-            'content': ''.join([seg['content'] for seg in current_segment])
-        })
+        results.append(f"{current_speaker}, {round(float(current_segment[0]['start_time']), 1)}, {''.join([seg['content'] for seg in current_segment])}")
 
-    return results
+    return '\n'.join(results)

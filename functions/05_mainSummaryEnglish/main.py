@@ -1,3 +1,4 @@
+
 import boto3
 import json
 import logging
@@ -8,6 +9,8 @@ from botocore.exceptions import ClientError
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+
+# when do local test, the path of prompt should be full file path, or "No such file or directory: 'system_prompt.txt" error.
 def read_prompt():
     """Reads the prompt text from 'prompt.txt'."""
     with open("prompt.txt", "r", encoding="utf-8") as file:
@@ -30,11 +33,11 @@ def generate_message(bedrock_runtime, model_id, system_prompt, messages, max_tok
 
 def lambda_handler(event, context):
     dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table('video-sum-table')  # Corrected table name
+    table = dynamodb.Table('videosum-table')  # Corrected table name
 
     try:
         # Retrieve the S3 URL from the event object
-        s3_uri = event['s3_uri']  # Ensure this key exists in your event object
+        s3_uri = event['Payload']['s3_uri']  # Ensure this key exists in your event object
 
         # Retrieve the transcription text from DynamoDB
         response = table.get_item(Key={'s3_uri': s3_uri})
@@ -67,6 +70,7 @@ def lambda_handler(event, context):
             UpdateExpression='SET sum_en = :val',
             ExpressionAttributeValues={':val': summary_en}
         )
+        print("update response", update_response)
 
         return {
             'statusCode': 200,

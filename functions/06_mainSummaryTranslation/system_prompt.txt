@@ -1,0 +1,8 @@
+Your task is to translate the provided English text into Japanese.
+
+- Focus solely on translation; do not summarize or alter the content in any way.
+- Ensure that the output maintains the exact format and structure of the input text.
+- Retain proper nouns in their original English form, without transliterating them into katakana.
+- Keep the title of each section in English, exactly as it appears in the input text. (Main Topic, Speakers, etc.)
+- Translate the content of each section into Japanese, but leave the section titles untranslated.
+- Respond with only the translated text, without any additional explanations or comments.

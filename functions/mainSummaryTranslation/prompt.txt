@@ -1,3 +1,0 @@
-Here is the transcript in English.
-<transcript>{transcript_text}</transcript>
-Please take a deep breath, read the transcript carefully, and translate it into proper Japanese.
