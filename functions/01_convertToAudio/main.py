@@ -9,8 +9,8 @@ def lambda_handler(event, context):
     source_bucket = event['Records'][0]['s3']['bucket']['name']
     key = unquote_plus(event['Records'][0]['s3']['object']['key'])
     
-    download_path = f'/tmp/{key}'
-    output_path = f'/tmp/{key}.m4a'
+    download_path = f'/tmp/{os.path.basename(key)}'
+    output_path = f'/tmp/{os.path.splitext(os.path.basename(key))[0]}.m4a'
 
     output_bucket = 'videosum-audio-output'
     

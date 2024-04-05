@@ -7,10 +7,10 @@ dynamodb = boto3.resource('dynamodb')
 table_name = 'videosum-table'
 table = dynamodb.Table(table_name)
 s3 = boto3.client('s3')
+
 # サイドバーにファイルアップロード機能を設置
 with st.sidebar:
     uploaded_file = st.file_uploader("Choose a file")
-    video_name = st.text_input("Video Name (YYYYMMDD_xx)")
     description = st.text_area("Description (optional)")
     url = st.text_input("URL (optional)")
 
@@ -18,7 +18,7 @@ with st.sidebar:
 
 # アップロードされたビデオのリスト（DynamoDBから取得）
 response = table.scan()
-videos = [item['video_name'] for item in response['Items']]
+videos = [item['s3_uri'] for item in response['Items']]
 
 # サイドバーにビデオのリストを表示するセレクトボックスを設置
 selected_video = st.sidebar.selectbox("Select a video", videos)
@@ -26,7 +26,8 @@ selected_video = st.sidebar.selectbox("Select a video", videos)
 # 選択されたビデオに関する情報をメインエリアに表示
 if selected_video:
     # 選択されたビデオの情報をDynamoDBから取得
-    response = table.get_item(Key={'s3_uri': f"s3://videosum-audio-output/{selected_video}.m4a"})
+    response = table.get_item(Key={'s3_uri': f"s3://videosum-audio-output/{selected_video}"})
+    print (selected_video)
     print(response)
     
     if 'Item' in response:
@@ -40,12 +41,13 @@ if selected_video:
         st.write("### Timestamp-wise Summary")
         st.write(item.get('sum_by_tspart', 'Timestamp-wise summary not available'))
     else:
-        st.write("Video not found in the database.")
+        st.write("not in DB")
 
 if submit_button:
     # ファイルアップロードとDynamoDBへの情報保存の処理を行う
-    if uploaded_file and video_name:
-        # アップロードされたファイルをS3に保存（ここでは省略）
+    if uploaded_file:
+        # アップロードされたファイルをS3に保存
+        video_name = uploaded_file.name
         s3_uri = f"s3://videosum-video-input/{video_name}"
         s3.upload_fileobj(uploaded_file, "videosum-video-input", video_name)
         upload_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -62,4 +64,4 @@ if submit_button:
         
         st.sidebar.write("Video uploaded successfully!")
     else:
-        st.sidebar.write("Please provide a file and video name.")
+        st.sidebar.write("Please provide a file.")
