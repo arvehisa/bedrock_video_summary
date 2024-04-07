@@ -42,7 +42,7 @@ def lambda_handler(event, context):
     table = dynamodb.Table('videosum-table')
 
     try:
-        s3_uri = event['Payload']['s3_uri']
+        s3_uri = event['s3_uri']
         response = table.get_item(Key={'s3_uri': s3_uri})
         if 'Item' not in response:
             return {'statusCode': 404, 'body': json.dumps('Transcription not found in DynamoDB.')}

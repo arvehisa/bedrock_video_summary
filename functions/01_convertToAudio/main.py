@@ -18,7 +18,12 @@ def lambda_handler(event, context):
     
     convert_mp4_to_m4a(download_path, output_path)
     
-    s3_client.upload_file(output_path, output_bucket, os.path.basename(output_path))
+    s3_client.upload_file(output_path, output_bucket, os.path.basename(output_path), ExtraArgs={'ACL': 'public-read'})
+
+    return {
+        's3Bucket': output_bucket,
+        's3Key': os.path.basename(output_path),
+    }
 
 
 def convert_mp4_to_m4a(input_file, output_file):

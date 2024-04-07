@@ -9,8 +9,8 @@ def lambda_handler(event, context):
     table = dynamodb.Table('videosum-table') 
 
     # Extract jobName and s3_uri from the event
-    job_name = event['Payload'].get('jobName')
-    s3_uri = event['Payload']['s3_uri']
+    job_name = event['jobName']
+    s3_uri = event['s3_uri']
 
     # Check Transcribe job status
     response = transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
@@ -19,6 +19,7 @@ def lambda_handler(event, context):
     if job_status == 'COMPLETED':
         # Get the transcription result
         transcript_uri = response['TranscriptionJob']['Transcript']['TranscriptFileUri']
+        print(transcript_uri)
 
         # Fetch and load transcript data from the URI
         with urllib.request.urlopen(transcript_uri) as url:

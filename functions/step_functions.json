@@ -1,13 +1,34 @@
 {
-  "StartAt": "transcribeJob",
+  "StartAt": "convertToAudio",
   "States": {
-    "transcribeJob": {
+    "convertToAudio": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
+      "ResultPath": "$.convertToAudioResult",
       "Parameters": {
         "Payload.$": "$",
-        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-transcribeJob:$LATEST"
+        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-convertToAudio:$LATEST"
       },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "transcribeJob"
+    },
+    "transcribeJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:618044871166:function:videosum-transcribeJob:$LATEST",
+      "InputPath": "$.convertToAudioResult",
+      "ResultPath": "$.transcribeJobReuslt",
       "Retry": [
         {
           "ErrorEquals": [
@@ -26,16 +47,13 @@
     "WaitForJobCompletion": {
       "Type": "Wait",
       "Seconds": 15,
-      "Next": "checkJobStatusFormatting",
-      "OutputPath": "$"
+      "Next": "checkJobStatusFormatting"
     },
     "checkJobStatusFormatting": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "Payload.$": "$",
-        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-checkJobStatusFormatting:$LATEST"
-      },
+      "Resource": "arn:aws:lambda:us-east-1:618044871166:function:videosum-checkJobStatusFormatting:$LATEST",
+      "InputPath": "$.transcribeJobReuslt",
+      "OutputPath": "$.checkJobStatusFormattingResult",
       "Retry": [
         {
           "ErrorEquals": [
@@ -56,7 +74,7 @@
       "Type": "Choice",
       "Choices": [
         {
-          "Variable": "$.checkJobStatusFormattingResult.Payload.jobStatus",
+          "Variable": "$.checkJobStatusFormattingResult.jobStatus",
           "StringEquals": "COMPLETED",
           "Next": "mainSummaryEnglish"
         }
@@ -65,11 +83,8 @@
     },
     "mainSummaryEnglish": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "Payload.$": "$",
-        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-mainSummaryEnglish:$LATEST"
-      },
+      "Resource": "arn:aws:lambda:us-east-1:618044871166:function:videosum-mainSummaryEnglish:$LATEST",
+      "InputPath": "$.checkJobStatusFormattingResult",
       "Retry": [
         {
           "ErrorEquals": [
@@ -83,16 +98,13 @@
           "BackoffRate": 2
         }
       ],
-      "Next": "mainSummaryTranslation"
+      "Next": "mainSummaryTranslation",
+      "ResultPath": "$.checkJobStatusFormattingResult"
     },
     "mainSummaryTranslation": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "OutputPath": "$.Payload",
-      "Parameters": {
-        "Payload.$": "$",
-        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-mainSummaryTranslation:$LATEST"
-      },
+      "Resource": "arn:aws:lambda:us-east-1:618044871166:function:videosum-mainSummaryTranslation:$LATEST",
+      "InputPath": "$.checkJobStatusFormattingResult",
       "Retry": [
         {
           "ErrorEquals": [
@@ -106,16 +118,13 @@
           "BackoffRate": 2
         }
       ],
-      "InputPath": "$.checkJobStatusFormattingResult",
-      "Next": "splitPartsSummary"
+      "Next": "splitPartsSummary",
+      "ResultPath": "$.checkJobStatusFormattingResult"
     },
     "splitPartsSummary": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "Payload.$": "$",
-        "FunctionName": "arn:aws:lambda:us-east-1:618044871166:function:videosum-splitPartsSummary:$LATEST"
-      },
+      "Resource": "arn:aws:lambda:us-east-1:618044871166:function:videosum-splitPartsSummary:$LATEST",
+      "InputPath": "$.checkJobStatusFormattingResult",
       "Retry": [
         {
           "ErrorEquals": [
