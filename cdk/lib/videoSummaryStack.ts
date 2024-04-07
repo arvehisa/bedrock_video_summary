@@ -12,6 +12,8 @@ import * as sfn from 'aws-cdk-lib/aws-stepfunctions'
 import * as ecs_patterns from "aws-cdk-lib/aws-ecs-patterns";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as events from 'aws-cdk-lib/aws-events'
 import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 
 type Props = cdk.StackProps & {
@@ -36,6 +38,7 @@ export class VideoSummaryStack extends cdk.Stack {
       bucketName: `${resourceName}-video-input`,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
+      eventBridgeEnabled: true
     });
 
     const audioOutput = new s3.Bucket(this, 'audioOutput', {
@@ -191,7 +194,8 @@ export class VideoSummaryStack extends cdk.Stack {
       tracing: lambda.Tracing.ACTIVE,
       handler: 'main.lambda_handler', 
     });
-    // sfn
+    
+    // sfn role and add policy
 
     const sfnRole: iam.Role = new iam.Role(this, 'sfnRole', {
       roleName: `${resourceName}-sfnRole`,
@@ -204,19 +208,46 @@ export class VideoSummaryStack extends cdk.Stack {
       resources: ['*'],
     }));
 
+    //create statemachine
     const stepFunctions = new sfn.StateMachine(this, 'StateMachineFromFile', {
       definitionBody: sfn.DefinitionBody.fromFile('../functions/step_functions.json', {}),
       stateMachineName: `${resourceName}-sfn`,
       role: sfnRole,
     });
 
-    // triggers
-    videoInput.addEventNotification(
-      s3.EventType.OBJECT_CREATED_PUT, new s3n.LambdaDestination(convertToAudio)
-    );
+    // set event bridge rule to trigger statemachine but put object into video-input bucket
+    const eventBridgeRole = new iam.Role(this, 'Role', {
+      assumedBy: new iam.ServicePrincipal('events.amazonaws.com'),
+    });
 
-    audioOutput.addEventNotification(
-      s3.EventType.OBJECT_CREATED_PUT, new s3n.LambdaDestination(stepFunctionsTrigger)
-    );
+    eventBridgeRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['*'],
+      resources: ['*'],
+    }));
+
+    const eventBridgeRule = new events.Rule(this, 's3PutTriggerSfnRule', {
+    
+      ruleName: `${resourceName}-s3PutTriggerSfnRule`,
+      eventPattern: {
+        source: ['aws.s3'],
+        detailType: ["Object Created"],
+        resources: [videoInput.bucketArn],
+        detail: {
+          "object": {
+            "key": [{
+              "suffix": ".mp4"
+            }]
+          }
+        }
+      }
+    })
+
+    eventBridgeRule.addTarget(new targets.SfnStateMachine(stepFunctions, {
+      input: events.RuleTargetInput.fromObject({
+        bucketName: events.EventField.fromPath('$.detail.bucket.name'),
+        objectKey: events.EventField.fromPath('$.detail.object.key'),
+      }),
+      role: eventBridgeRole
+    }))
   }
 }
